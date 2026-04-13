@@ -1,0 +1,50 @@
+# Xilon Alpha 10.1 "AEGIS-REDUNDANT"
+
+**Advanced Hypersonic Thermal Protection System Simulator**
+
+Xilon Alpha 10.1 is a high-fidelity numerical simulator for a hybrid active thermal protection system (TPS) designed for extreme atmospheric reentry at **Mach 36**.
+
+### Key Features
+
+- **Active Transpiration Cooling** using liquid nitrogen (25 kg reservoir)
+- **Magnetohydrodynamic (MHD) Plasma Shield** with emergency overdrive up to **6 Tesla**
+- **Hafnium-Carbon-Nitride (Hf-C-N)** structural plates, 65 mm thick
+- **Per-cell PID controller** for intelligent coolant flow management
+- **Automatic failover system** – switches to full MHD protection if valves fail or fuel is low
+- **12×6 cell grid** with inter-cell thermal conduction
+- Full thermodynamic balance: convective heating, radiation, conduction, and active cooling
+
+### Simulation Results (Nominal Mode – B = 1.2 T)
+
+- Total nitrogen consumed: **21.995 kg** (3.005 kg remaining)
+- Peak Nose temperature: stabilized around **2500 K**
+- Peak Tail temperature: **~2604 K**
+- Safety Mode (MHD Overdrive): never activated
+- Numerical stability: fully stable with Δt = 0.01 s
+
+### Overdrive Mode (B = 6 T)
+
+When activated, the MHD shield dramatically reduces heat flux (over 99% reduction in some cases), keeping temperatures on the entire grid below **400 K** with minimal coolant usage.
+
+### Technical Highlights
+
+- Real-time per-cell PID control
+- Stuart number-based MHD shielding model
+- Stefan-Boltzmann radiation modeling
+- Row-dependent heat flux distribution
+- Complete CSV logging for post-processing
+
+### Purpose
+
+This is an **open-source research and educational project** developed by an independent visionary programmer. The goal is to explore innovative hybrid TPS concepts combining active cooling and magnetic shielding for future hypersonic and interplanetary vehicles.
+
+The code is released under the **GNU Affero General Public License v3.0 (AGPLv3)**.
+
+**Commercial licensing** is available for companies or organizations interested in closed-source integration or custom development. Please contact me for details.
+
+### Repository Contents
+
+- `Agesis.cpp` – Complete C++ source code
+- `xilon_final_report.csv` – Full simulation log (10,001 entries)
+- `simulation_results.md` – Detailed simulation analysis
+- `LICENSE` – AGPLv3 license
