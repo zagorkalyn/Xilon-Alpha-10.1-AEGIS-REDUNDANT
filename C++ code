@@ -1,0 +1,127 @@
+/**
+ * ============================================================================
+ * XILON ALPHA 10.1 "AEGIS-REDUNDANT" - MASTER VERSION
+ * ----------------------------------------------------------------------------
+ * Integrări: Stabilitate 6.4 + Rezervor 25kg + Safety Failover + Data Export
+ * ============================================================================
+ */
+
+#include <iostream>
+#include <vector>
+#include <cmath>
+#include <algorithm>
+#include <iomanip>
+#include <fstream>
+
+namespace Xilon {
+    const double DT = 0.01; 
+    const double MAX_COOLANT = 25.0; 
+    const double TARGET_TEMP = 2500.0;
+    const int ROWS = 12;
+    const int COLS = 6;
+    const double CELL_AREA = 0.0144; 
+}
+
+struct Cell {
+    double temp = 300.0;
+    double thickness = 0.065; 
+    double coolant_flow = 0.0;
+    double integral = 0.0;
+    bool valve_stuck = false; // Pentru simularea unei defecțiuni
+};
+
+class XilonAegis {
+public:
+    std::vector<std::vector<Cell>> grid;
+    double fuel = Xilon::MAX_COOLANT;
+    std::ofstream csv;
+
+    XilonAegis() {
+        grid.resize(Xilon::ROWS, std::vector<Cell>(Xilon::COLS));
+        csv.open("xilon_final_report.csv");
+        csv << "Time,Mach,Tesla,T_Nose,T_Tail,Fuel,Safety_Mode\n";
+    }
+
+    ~XilonAegis() { if(csv.is_open()) csv.close(); }
+
+    void process(double time, double mach, double &tesla) {
+        std::vector<std::vector<double>> next_temp(Xilon::ROWS, std::vector<double>(Xilon::COLS));
+        bool emergency_active = false;
+
+        // 1. Calcul Scut Magnetic de Bază
+        double u = mach * 340.0;
+        double stuart = (150.0 * tesla * tesla * 0.08) / (0.012 * u);
+        double mhd_shield = std::exp(-1.15 * stuart);
+
+        for (int r = 0; r < Xilon::ROWS; ++r) {
+            for (int c = 0; c < Xilon::COLS; ++c) {
+                auto& cell = grid[r][c];
+                double safety_boost = 1.0;
+
+                // 2. Controler PID & Logică de Urgență
+                double err = cell.temp - Xilon::TARGET_TEMP;
+                if (err > 0 && fuel > 0 && !cell.valve_stuck) {
+                    cell.integral += err * Xilon::DT;
+                    cell.coolant_flow = std::clamp(0.00045 * err + 0.00004 * cell.integral, 0.0, 0.7);
+                    fuel -= cell.coolant_flow * Xilon::CELL_AREA * Xilon::DT;
+                } else if (cell.valve_stuck && err > 200) {
+                    // COMPENSARE: Dacă valva e blocată, forțăm MHD
+                    safety_boost = 1.8; 
+                    emergency_active = true;
+                } else {
+                    cell.coolant_flow = 0.0;
+                }
+
+                // 3. Balanța Termică (Hafniu + Transpirație)
+                double row_factor = 1.0 - (0.04 * r); 
+                double q_in = (18.5e6 * row_factor * mhd_shield * std::exp(-3.5 * cell.coolant_flow)) / safety_boost * Xilon::CELL_AREA;
+                
+                double q_cool = cell.coolant_flow * 1040.0 * (cell.temp - 300.0) * Xilon::CELL_AREA;
+                double q_rad = 5.67e-8 * 0.92 * std::pow(cell.temp, 4) * Xilon::CELL_AREA;
+                
+                // Conducție (Seahorse Structural Plates)
+                double q_cond = 0;
+                if (r > 0) q_cond += 20.0 * (grid[r-1][c].temp - cell.temp);
+                if (r < Xilon::ROWS - 1) q_cond += 20.0 * (grid[r+1][c].temp - cell.temp);
+
+                double net_q = q_in + q_cond - q_cool - q_rad;
+                double mass = Xilon::CELL_AREA * cell.thickness * 13100.0;
+                
+                next_temp[r][c] = std::clamp(cell.temp + (net_q * Xilon::DT) / (mass * 245.0), 200.0, 4300.0);
+            }
+        }
+
+        // Update Grid & fail-safe magnetic general
+        for (int r = 0; r < Xilon::ROWS; ++r)
+            for (int c = 0; c < Xilon::COLS; ++c) grid[r][c].temp = next_temp[r][c];
+         if (emergency_active || fuel < 3.0 || mach > 25.0) {
+            if (tesla < 6.0) tesla += 0.05; 
+        } else {
+            if (tesla > 1.2) tesla -= 0.02; 
+        }
+
+        csv << time << "," << mach << "," << tesla << "," << grid[0][0].temp << "," 
+            << grid[Xilon::ROWS-1][0].temp << "," << fuel << "," << (emergency_active ? 1 : 0) << "\n";
+    } // <--- Aici se închide funcția process
+}; // <--- ACEASTA ESTE ACOLADA CARE ÎȚI LIPSEȘTE (închide clasa XilonAegis)
+int main() {
+    XilonAegis ship;
+    double t = 0.0;
+    double current_tesla = 1.2;
+
+    std::cout << "Lansare Secventa Xilon Alpha 10.1...\n";
+    for (int i = 0; i <= 10000; ++i) {
+        double mach = 36.0 - (i * 0.0026);
+        ship.process(t, mach, current_tesla);
+
+        if (i % 1000 == 0) {
+            std::cout << "T: " << std::fixed << std::setprecision(1) << t << "s | Mach: " << mach 
+                      << " | Nose: " << (int)ship.grid[0][0].temp << "K"
+                      << " | Fuel: " << ship.fuel << "kg" << std::endl;
+        }
+        t += Xilon::DT;
+        if (mach <= 10.0) break;
+    }
+    std::cout << "Misiune incheiata cu succes. Raport generat.\n";
+    return 0;
+}
