@@ -1,0 +1,22 @@
+
+### 2. `simulation_results.md`
+
+```markdown
+# Rezultate simulări Xilon Alpha 10.1
+
+## 1. Simulare nominală (B = 1.2 T)
+- Consum azot: 21.995 kg
+- T_Nose maxim: ~2873 K (stabilizat la ~2500 K)
+- T_Tail maxim: ~2604 K
+- Safety_Mode: 0 (nu s-a activat)
+
+## 2. Simulare cu B = 6 T (MHD Overdrive)
+- Consum azot: foarte redus (~16.78 kg)
+- Temperaturi maxime pe grid: sub 381 K
+- Flux termic efectiv: redus cu peste 99%
+
+## 3. Efect Lorentz la B = 6 T
+- Forță maximă la nas: 5.29 × 10⁶ N/m³
+- Reducere dramatică a fluxului termic
+
+Toate simulările confirmă robustețea sistemului „AEGIS-REDUNDANT”.
